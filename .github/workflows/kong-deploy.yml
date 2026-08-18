@@ -1,0 +1,60 @@
+name: Kong Ingress Controller Deployment Pipeline
+
+on:
+  push:
+    branches: [ main, master, dev, int ]
+  workflow_dispatch:
+    inputs:
+      cluster_name:
+        description: 'AKS Cluster Name'
+        required: true
+        default: 'rakesh-aks-cluster'
+      resource_group:
+        description: 'Azure Resource Group'
+        required: true
+        default: 'rakesh-rg'
+
+env:
+  AZURE_CLIENT_ID: "a74bb5f1-70ab-4e43-804f-911563937a5b"
+  AZURE_TENANT_ID: "cf95a022-f760-4c81-b527-b8d8a9caddc2"
+  AZURE_SUBSCRIPTION_ID: "a60bfb4b-160f-44e7-979b-775bdd787c90"
+  AKS_CLUSTER_NAME: "rakesh-aks-cluster"
+  AKS_RESOURCE_GROUP: "rakesh-rg"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-kong:
+    name: Deploy Kong Cluster Manifests to AKS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set AKS Cluster Context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+
+      - name: Apply Kong Cluster Manifests
+        run: |
+          kubectl apply -f 00-namespace-rbac.yaml
+          kubectl apply -f 01-crds.yaml
+          kubectl apply -f 02-kong-controller.yaml
+          kubectl apply -f 03-ingress-class.yaml
+          kubectl apply -f 04-global-plugins.yaml
+
+      - name: Verify Kong Ingress Controller Status
+        run: |
+          kubectl get pods -n kong
+          kubectl get svc -n kong kong-proxy
