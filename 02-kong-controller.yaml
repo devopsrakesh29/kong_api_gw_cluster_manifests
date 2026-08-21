@@ -34,7 +34,7 @@ spec:
               cpu: 500m
               memory: 512Mi
         - name: proxy
-          image: kong:3.6-alpine
+          image: kong:3.6
           env:
             - name: KONG_DATABASE
               value: "off"
@@ -62,6 +62,8 @@ kind: Service
 metadata:
   name: kong-proxy
   namespace: kong
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
 spec:
   type: LoadBalancer
   ports:
