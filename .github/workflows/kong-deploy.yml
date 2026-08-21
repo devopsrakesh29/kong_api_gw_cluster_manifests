@@ -2,7 +2,7 @@ name: Kong Ingress Controller Deployment Pipeline
 
 on:
   push:
-    branches: [ main, master, dev, int ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       cluster_name:
